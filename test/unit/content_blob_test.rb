@@ -734,4 +734,12 @@ class ContentBlobTest < ActiveSupport::TestCase
     refute Factory(:ppt_content_blob).is_text?
     refute Factory(:binary_content_blob).is_text?
   end
+
+  test 'json' do
+    blob = Factory(:data_file).content_blob
+    json = blob.as_json
+    #json = JSON.parse(json)
+    puts json.inspect
+
+  end
 end
