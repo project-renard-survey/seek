@@ -54,6 +54,24 @@ class RdfGenerationJobTest < ActiveSupport::TestCase
     assert_includes(handlers, 'RdfGenerationJob')
   end
 
+  test 'rdf generation job not created after policy change for non rdf supported entity' do
+    item = Factory(:event, policy: Factory(:public_policy))
+    Delayed::Job.delete_all
+
+    handlers = Delayed::Job.all.collect(&:handler).join(',')
+    refute_includes(handlers, 'RdfGenerationJob')
+
+    item.policy.access_type = Policy::NO_ACCESS
+    disable_authorization_checks do
+      assert_no_difference('Delayed::Job.count') do
+        item.policy.save!
+      end
+    end
+
+    handlers = Delayed::Job.all.collect(&:handler).join(',')
+    refute_includes(handlers, 'RdfGenerationJob')
+  end
+
   test 'create job' do
     item = Factory(:assay)
 
@@ -64,6 +82,19 @@ class RdfGenerationJobTest < ActiveSupport::TestCase
     end
     job = Delayed::Job.last
     assert_equal 2, job.priority
+  end
+
+  test 'skip items that dont support rdf' do
+    item = Factory(:event)
+    refute item.rdf_supported?
+
+    assert_empty RdfGenerationJob.new(item).gather_items
+
+    item = Factory(:sop)
+    assert item.rdf_supported?
+
+    assert_equal [item], RdfGenerationJob.new(item).gather_items
+
   end
 
   test 'exists' do
