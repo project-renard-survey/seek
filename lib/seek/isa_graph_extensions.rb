@@ -5,7 +5,8 @@ module Seek
     def isa_children
       root_item = controller_name.classify.constantize.find(params[:id])
 
-      @hash = Seek::IsaGraphGenerator.new(root_item).generate(depth: 1, include_parents: false, include_self: false)
+      @hash = Seek::IsaGraphGenerator.new(root_item).generate(depth: 1, include_parents: false, include_self: false,
+                                                              all_children: true)
 
       respond_to do |format|
         format.json { render 'general/isa_children' }

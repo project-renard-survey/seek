@@ -13,12 +13,16 @@ module Seek
   end
 
   class IsaGraphGenerator
+    MAX_CHILD_DISPLAY = 16
+
     def initialize(object)
       @object = object
     end
 
-    def generate(depth: 1, deep: false, include_parents: false, include_self: true, auth: true)
+    def generate(depth: 1, deep: false, include_parents: false, include_self: true, auth: true, all_children: false)
       @auth = auth
+      @all_children = all_children
+
       hash = { nodes: [], edges: [] }
 
       depth = deep ? nil : depth
@@ -72,7 +76,7 @@ module Seek
       nodes = [node]
       edges = []
 
-      if max_depth.nil? || (depth < max_depth) || children.count == 1
+      if (max_depth.nil? || (depth < max_depth) || children.count == 1) && (@all_children || children.count < MAX_CHILD_DISPLAY)
         children.each do |child|
           hash = traverse(method, child, max_depth, depth + 1)
           nodes += hash[:nodes]
@@ -118,7 +122,7 @@ module Seek
         }
       when Assay
         {
-          children: object.assets,
+          children: object.assets | object.samples,
           parents: [object.study],
           related: object.publications
         }
@@ -129,6 +133,7 @@ module Seek
         }
       when DataFile, Model, Sop, Sample, Presentation
         {
+          children: object.respond_to?(:extracted_samples) ? object.extracted_samples : [],
           parents: object.assays,
           related: object.publications | (object.respond_to?(:events) ? object.events : [])
         }
